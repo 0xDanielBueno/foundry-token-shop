@@ -1,0 +1,4 @@
+{
+  "filter_paths": "test,lib",
+  "detectors_to_exclude": "unused-return"
+}
