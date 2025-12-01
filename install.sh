@@ -66,3 +66,51 @@ forge test --mt test_if_decimals_of_my_token_is_2 \
 forge test \
     --fork-url $SEPOLIA_RPC_URL \
     -vvvv
+
+forge coverage \
+    --fork-url $SEPOLIA_RPC_URL \
+    --report lcov \
+    --report-file lcov.info \
+    -vvvv
+
+genhtml -o report --no-branch-coverage lcov.info
+
+cast sig "mint(address,uint256)"
+
+cast kecca256 "mint(address,uint256)"
+
+forge test \
+    --mt test_if_minter_hole_is_executing_token_mint \
+    -vvvv
+
+
+forge test \
+    --mp test/Token.t.sol \
+    -vvvv
+
+forge coverage \
+    --mp test/Token.t.sol \
+    --report lcov \
+    --report-file lcov.info \
+    -vvvv
+
+forge test \
+    --mp test/PriceFeed.t.sol \
+    -vvvv
+
+forge coverage \
+    --mp test/PriceFeed.t.sol \
+    --report lcov \
+    --report-file lcov.info \
+    -vvvv
+
+forge test \
+    --mp test/TokenShop.t.sol \
+    -vvvv
+
+forge test -vvvvv
+
+forge coverage \
+    --report lcov \
+    --report-file lcov.info \
+    -vvvvv

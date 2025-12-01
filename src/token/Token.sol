@@ -2,30 +2,23 @@
 
 pragma solidity ^0.8.30;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {AbstractToken} from "./base/AbstractToken.sol";
 
-contract Token is ERC20, AccessControl, AbstractToken {
-    bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
-    constructor() ERC20("Morsai", "MOR") {
-        require(_grantRole(DEFAULT_ADMIN_ROLE, msg.sender), "Failed to grant admin role");
-        require(_grantRole(MINTER_ROLE, msg.sender), "Failed to grant minter role");
-    }
+contract Token is ERC20, AccessManaged {
+    constructor(
+        address _manager
+    ) ERC20("Morsai", "MOR") AccessManaged(_manager) {}
 
     function mint(
         address to,
         uint256 amount
-    ) public override(AbstractToken) onlyRole(MINTER_ROLE) {
+    ) public restricted {
         _mint(to, amount);
     }
 
-    function minterHole() public pure returns (bytes32) {
-        return MINTER_ROLE;
-    }
-
-    function decimals() public pure override(ERC20, AbstractToken) returns (uint8) {
+    function decimals() public pure override(ERC20) returns (uint8) {
         return 2;
     }
 }

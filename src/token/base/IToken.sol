@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.30;
 
-abstract contract AbstractToken {
+interface IToken {
     function mint(
         address account,
         uint256 amount
-    ) external virtual;
-    function decimals() external view virtual returns (uint8);
+    ) external;
+    function decimals() external view returns (uint8);
 }

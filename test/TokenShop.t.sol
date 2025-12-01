@@ -3,43 +3,67 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 
 import {TokenShop} from "../src/TokenShop.sol";
 
-import {AbstractToken} from "../src/token/base/AbstractToken.sol";
 import {Token} from "../src/token/Token.sol";
-import {AbstractPriceFeed} from "../src/oracle/chainlink/datafeed/base/AbstractPriceFeed.sol";
 import {PriceFeed} from "../src/oracle/chainlink/datafeed/PriceFeed.sol";
 
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
+
+import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+
 contract TokenShopTest is Test {
-    AbstractToken token;
-    AbstractPriceFeed ethUsdPriceFeed;
+    Token token;
+    AccessManager manager;
+    PriceFeed priceFeed;
+    MockV3Aggregator mockAggregator;
     TokenShop tokenShop;
 
+    uint64 constant MINTER_ROLE = 1;
+
+    uint8 constant DECIMALS = 8;
+    int256 constant INITIAL_PRICE = 302725920800;
+    // uint256 constant INITIAL_TIMESTAMP = 1000;
+    // uint80 constant INITIAL_ROUND_ID = 1;
+
+    address minterHole = makeAddr("MINTER_HOLE");
+    address adminHole = makeAddr("ADMIN_HOLE");
+
     function setUp() public {
-        token = new Token();
-        /**
-         * Price Feed Contract Addresse
-         *
-         * Network: Sepolia
-         * Aggregator: ETH/USD
-         * Address: 0x694AA1769357215DE4FAC081bf1f309aDC325306
-         */
-        ethUsdPriceFeed = new PriceFeed(0x694AA1769357215DE4FAC081bf1f309aDC325306);
-        tokenShop = new TokenShop(token, ethUsdPriceFeed, 200, 2);
+        // Muda o msg.sender, temporariamente, de "TokenTest" para "adminHole".
+        vm.startPrank(adminHole);
+        // Cria-se um "livro de Regras" definindo seu administrador.
+        manager = new AccessManager(adminHole);
+        // Cria-se o Token e diz: "Siga as regras daquele livro".
+        //   1) O "admin" agora controla o Token INDIRETAMENTE.
+        //   2) Ele não "fala" com o Token diretamente, e sim com o Manager.
+        token = new Token(address(manager));
+
+        mockAggregator = new MockV3Aggregator(DECIMALS, INITIAL_PRICE);
+        priceFeed = new PriceFeed(address(manager), address(mockAggregator));
+        tokenShop = new TokenShop(address(manager), adminHole, address(token), address(priceFeed), 200, 2);
+
+        bytes4[] memory tokenSelectors = new bytes4[](1);
+        tokenSelectors[0] = token.mint.selector;
+
+        manager.grantRole(MINTER_ROLE, minterHole, 0);
+        manager.setTargetFunctionRole(address(token), tokenSelectors, MINTER_ROLE);
+        vm.stopPrank();
     }
 
-    function test_if_take_amount_is_correct() public view {
-        uint256 amountEth = 0.01 ether;
-        uint256 amountToken = tokenShop.takeAmount(amountEth);
-        assert(amountToken > 0);
-        console.log("Amount Token:", amountToken);
+    function test_if_minter_hole_is_executing_token_mint() public view {
+        (bool isExecuting,) = manager.canCall(minterHole, address(token), token.mint.selector);
+        assertTrue(isExecuting);
     }
 
-    function test_if_decimals_of_my_token_is_2() public view {
-        uint8 decimals = token.decimals();
-        assertEq(token.decimals(), decimals);
-        console.log("Decimals:", decimals);
+    function test_if_admin_hole_is_setting_to_contract_admin() public view {
+        (bool isMember,) = manager.hasRole(manager.ADMIN_ROLE(), adminHole);
+        assertTrue(isMember);
+    }
+
+    function test_if_function_mint_hole_is_setting_minter_role() public view {
+        uint64 hole = manager.getTargetFunctionRole(address(token), token.mint.selector);
+        assertEq(hole, MINTER_ROLE);
     }
 }
