@@ -21,12 +21,23 @@ contract DeployTokenShop is Script {
 
     function run() external {
         vm.startBroadcast();
+        // Parâmetros iniciais para a configuração do TokenShop e Token.
+        //   1) Preço do Token em USD.
+        uint256 initialPrice = 2 * 10 ** token.decimals();
+        //   2) Número de casas decimais do preço do Token.
+        uint256 initialPriceDecimals = 2;
+        //   3) Quantidade única de Tokens a serem emitidos.
+        uint256 initialSupply = 10000000 * 10 ** token.decimals();
+
         // Cria-se um "livro de Regras" definindo seu administrador.
         manager = new AccessManager(msg.sender);
         // Cria-se o Token e diz: "Siga as regras daquele livro".
         //   1) O "admin" agora controla o Token INDIRETAMENTE.
         //   2) Ele não "fala" com o Token diretamente, e sim com o Manager.
-        token = new Token(address(manager));
+        token = new Token("Morsai", "MOR", address(manager));
+
+        // Emite-se os Tokens para o próprio contrato.
+        token.mint(address(token), initialSupply);
 
         // Cria-se um array de bytes4 (2 posições), onde cada bytes4 corresponde ao selector de uma função.
         //   1) Um seletor de função representa os 4 primeiros bytes do hash da função.
@@ -63,7 +74,8 @@ contract DeployTokenShop is Script {
          * Address: 0x694AA1769357215DE4FAC081bf1f309aDC325306
          */
         priceFeed = new PriceFeed(address(manager), 0x694AA1769357215DE4FAC081bf1f309aDC325306);
-        tokenShop = new TokenShop(address(manager), msg.sender, address(token), address(priceFeed), 200, 2);
+        tokenShop =
+            new TokenShop(address(manager), address(token), address(priceFeed), initialPrice, initialPriceDecimals);
         vm.stopBroadcast();
     }
 }

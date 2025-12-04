@@ -81,36 +81,54 @@ cast kecca256 "mint(address,uint256)"
 
 forge test \
     --mt test_if_minter_hole_is_executing_token_mint \
-    -vvvv
+    -vvvvv
 
 
 forge test \
     --mp test/Token.t.sol \
-    -vvvv
+    -vvvvv
 
 forge coverage \
     --mp test/Token.t.sol \
     --report lcov \
     --report-file lcov.info \
-    -vvvv
+    -vvvvv
 
 forge test \
     --mp test/PriceFeed.t.sol \
-    -vvvv
+    -vvvvv
 
 forge coverage \
     --mp test/PriceFeed.t.sol \
     --report lcov \
     --report-file lcov.info \
-    -vvvv
+    -vvvvv
 
 forge test \
     --mp test/TokenShop.t.sol \
-    -vvvv
+    -vvvvv
+
+forge coverage \
+    --mp test/TokenShop.t.sol \
+    --report lcov \
+    --report-file lcov.info \
+    -vvvvv
 
 forge test -vvvvv
 
 forge coverage \
     --report lcov \
     --report-file lcov.info \
+    -vvvvv
+
+forge test \
+    --mt test_if_mint_token_was_renounced \
+    -vvvvv
+
+forge test \
+    --mt test_if_token_contract_receives_initial_supply \
+    -vvvvv
+
+forge test \
+    --mt test_if_minted_token_can_be_transferred \
     -vvvvv

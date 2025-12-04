@@ -8,7 +8,6 @@ import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManage
 
 contract PriceFeed is AccessManaged {
     AggregatorV3Interface internal immutable dataFeed;
-    address public immutable proxyAggregatorContract;
 
     uint80 public roundIdUpdated;
     int256 public priceUpdated;
@@ -25,7 +24,6 @@ contract PriceFeed is AccessManaged {
     ) AccessManaged(_manager) {
         require(_manager != address(0), "Initial authority cannot be zero address");
         require(_proxyAggregatorContract != address(0), "Aggregator address cannot be zero address");
-        proxyAggregatorContract = _proxyAggregatorContract;
         dataFeed = AggregatorV3Interface(_proxyAggregatorContract);
         priceDetails();
     }

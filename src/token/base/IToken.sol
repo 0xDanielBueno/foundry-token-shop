@@ -8,4 +8,5 @@ interface IToken {
         uint256 amount
     ) external;
     function decimals() external view returns (uint8);
+    function totalSuply() external view returns (uint256);
 }

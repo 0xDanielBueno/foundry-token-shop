@@ -6,35 +6,39 @@ import {PriceFeed} from "./oracle/chainlink/datafeed/PriceFeed.sol";
 import {IToken} from "../src/token/base/IToken.sol";
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract TokenShop is AccessManaged {
+contract TokenShop is AccessManaged, ReentrancyGuard {
     IToken internal immutable token;
     PriceFeed internal immutable priceFeed;
+    address internal immutable manager;
 
     uint256 internal tokenPrice;
     uint256 internal tokenPriceDecimals;
 
-    uint256 internal constant ETH_DECIMALS = 18;
+    address payable internal treasury;
 
-    address internal immutable manager;
-    address internal treasury;
+    mapping(address => bool) public whitelistedTreasuries;
+
+    uint256 internal constant ETH_DECIMALS = 18;
 
     event PriceUpdate(address indexed owner, uint256 amountToken);
     event PriceDecimalsUpdate(address indexed owner, uint256 tokenPriceDecimals);
 
     constructor(
         address _manager,
-        address _newTreasury,
         address _tokenAddress,
         address _priceFeed,
         uint256 _tokenPrice,
         uint256 _tokenPriceDecimals
     ) AccessManaged(_manager) {
         require(_manager != address(0), "Initial authority cannot be zero address");
-        require(_newTreasury != address(0), "Treasury cannot be zero address");
         require(_tokenAddress != address(0), "Token address cannot be zero address");
+        require(_priceFeed != address(0), "Price feed address cannot be zero address");
+        require(_tokenPrice > 0, "Token price must be greater than zero");
+        require(_tokenPriceDecimals > 0, "Token price decimals must be greater than zero");
         manager = _manager;
-        treasury = _newTreasury;
+        treasury = payable(msg.sender);
         token = IToken(_tokenAddress);
         priceFeed = PriceFeed(_priceFeed);
         tokenPrice = _tokenPrice;
@@ -51,16 +55,20 @@ contract TokenShop is AccessManaged {
         return amountToken;
     }
 
-    function buyTokens() public payable {
+    function buyTokens(
+        uint256 aceptedTokenAmount
+    ) public payable {
         priceFeed.updatePriceFeed();
-        uint256 amountToken = takeAmount(msg.value);
+        uint256 amountToken = takeAmount(aceptedTokenAmount);
+        require(token.totalSuply() >= amountToken, "Not enough tokens");
         token.mint(msg.sender, amountToken);
-        (bool success,) = address(this).call{value: msg.value}("");
+        (bool success,) = address(this).call{value: aceptedTokenAmount}("");
         require(success, "failed to buy tokens");
     }
 
-    function withdraw() public restricted {
-        (bool success,) = payable(treasury).call{value: address(this).balance}("");
+    function withdraw() public restricted nonReentrant {
+        require(whitelistedTreasuries[treasury], "treasury not whitelisted");
+        (bool success,) = treasury.call{value: address(this).balance}("");
         require(success, "failed to withdraw");
     }
 
@@ -83,9 +91,10 @@ contract TokenShop is AccessManaged {
     }
 
     function setTreasury(
-        address newTreasury
+        address payable newTreasury
     ) public restricted {
         require(newTreasury != address(0), "Treasury cannot be zero address");
+        whitelistedTreasuries[newTreasury] = true;
         treasury = newTreasury;
     }
 

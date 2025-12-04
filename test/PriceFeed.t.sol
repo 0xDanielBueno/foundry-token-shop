@@ -37,11 +37,14 @@ contract PriceFeedTest is Test {
     }
 
     function test_constructor() public {
-        assertEq(priceFeed.proxyAggregatorContract(), address(mockAggregator));
         vm.expectRevert("Initial authority cannot be zero address");
         new PriceFeed(address(0), address(mockAggregator));
         vm.expectRevert("Aggregator address cannot be zero address");
         new PriceFeed(address(manager), address(0));
+    }
+
+    function test_if_authority_is_set() public view {
+        assertEq(priceFeed.authority(), address(manager));
     }
 
     function test_current_price() public view {
@@ -60,10 +63,6 @@ contract PriceFeedTest is Test {
         assertEq(priceFeed.priceUpdated(), INITIAL_PRICE);
         assertEq(priceFeed.priceUpdatedAt(), INITIAL_TIMESTAMP);
         assertEq(priceFeed.roundIdUpdated(), INITIAL_ROUND_ID);
-    }
-
-    function test_if_authority_is_set() public view {
-        assertEq(priceFeed.authority(), address(manager));
     }
 
     function test_if_admin_has_hole_admin_role() public view {
