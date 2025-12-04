@@ -37,4 +37,4 @@ jobs:
         run: forge build --sizes
 
       - name: Run Forge tests
-        run: forge test --fork-url ${{ secrets.SEPOLIA_RPC_URL }} -vvvv
+        run: forge test -vvvvv
